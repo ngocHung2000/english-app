@@ -39,3 +39,55 @@ export function getUserData(username) {
 export function saveUserData(username, data) {
   storage.set(`user_${username}`, data);
 }
+
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = '123456789!';
+
+export function adminLogin(username, password) {
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    try { sessionStorage.setItem('english_app_admin', 'true'); } catch {}
+    return true;
+  }
+  return false;
+}
+
+export function isAdminLoggedIn() {
+  try { return sessionStorage.getItem('english_app_admin') === 'true'; } catch { return false; }
+}
+
+export function adminLogout() {
+  try { sessionStorage.removeItem('english_app_admin'); } catch {}
+}
+
+export function getAllUserStats() {
+  const users = getUsers();
+  return Object.keys(users).map(username => {
+    const userData = getUserData(username);
+    const totalWords = userData.lessons.reduce((sum, l) => sum + l.words.length, 0);
+    const totalQuizzes = (userData.quizResults || []).length;
+    const avgScore = totalQuizzes > 0
+      ? Math.round(userData.quizResults.reduce((sum, q) => sum + q.score, 0) / totalQuizzes)
+      : 0;
+    return {
+      username,
+      createdAt: users[username].createdAt,
+      streak: userData.streak || 0,
+      points: userData.points || 0,
+      totalWords,
+      totalQuizzes,
+      avgScore,
+      lastStudyDate: userData.lastStudyDate,
+    };
+  });
+}
+
+export function deleteUser(username) {
+  const users = getUsers();
+  delete users[username];
+  saveUsers(users);
+  storage.remove('user_' + username);
+}
+
+export function resetUserData(username) {
+  storage.set('user_' + username, { lessons: [], quizResults: [], streak: 0, lastStudyDate: null, points: 0 });
+}
